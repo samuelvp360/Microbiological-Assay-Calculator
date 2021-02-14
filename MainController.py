@@ -27,9 +27,9 @@ class MainWindow(qtw.QMainWindow):
 
     def AddAssay(self, typeOfAssay):
         position = len(self.assaysDict)
+        name = self.SetAssayName()
+        conc = self.SetConcentrations()
         self.assaysDict[position] = Assay(typeOfAssay)
-        self.assaysDict[position].name = self.SetAssayName()
-        self.assaysDict[position].conc = self.SetConcentrations()
         # self.assaysDict[position].numSample = self.SetNumSample()
 
     def AddSample(self, position):
