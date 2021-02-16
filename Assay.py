@@ -8,3 +8,4 @@ class Assay():
         self.name = name
         self.conc = conc
         self.date = date
+        self.numOfSamples = 0

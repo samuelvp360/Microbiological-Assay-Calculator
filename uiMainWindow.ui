@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1164</width>
-    <height>533</height>
+    <width>989</width>
+    <height>736</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,8 +20,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>760</x>
-      <y>140</y>
+      <x>590</x>
+      <y>450</y>
       <width>89</width>
       <height>25</height>
      </rect>
@@ -33,9 +33,9 @@
    <widget class="QTableView" name="uiWellTableView">
     <property name="geometry">
      <rect>
-      <x>250</x>
-      <y>80</y>
-      <width>501</width>
+      <x>20</x>
+      <y>390</y>
+      <width>561</width>
       <height>271</height>
      </rect>
     </property>
@@ -50,8 +50,8 @@
    <widget class="QLabel" name="label_7">
     <property name="geometry">
      <rect>
-      <x>690</x>
-      <y>46</y>
+      <x>510</x>
+      <y>360</y>
       <width>67</width>
       <height>21</height>
      </rect>
@@ -60,21 +60,11 @@
      <string>Blank</string>
     </property>
    </widget>
-   <widget class="QTableView" name="uiSummaryTableView">
-    <property name="geometry">
-     <rect>
-      <x>870</x>
-      <y>80</y>
-      <width>271</width>
-      <height>391</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>470</x>
-      <y>40</y>
+      <x>290</x>
+      <y>354</y>
       <width>206</width>
       <height>27</height>
      </rect>
@@ -99,8 +89,8 @@
    <widget class="QPushButton" name="uiSubstractButton">
     <property name="geometry">
      <rect>
-      <x>760</x>
-      <y>90</y>
+      <x>590</x>
+      <y>400</y>
       <width>89</width>
       <height>25</height>
      </rect>
@@ -112,8 +102,8 @@
    <widget class="QWidget" name="layoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>250</x>
-      <y>40</y>
+      <x>70</x>
+      <y>354</y>
       <width>206</width>
       <height>27</height>
      </rect>
@@ -135,24 +125,11 @@
      </item>
     </layout>
    </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>980</x>
-      <y>50</y>
-      <width>67</width>
-      <height>17</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Summary</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="uiAddSampleButton">
     <property name="geometry">
      <rect>
-      <x>250</x>
-      <y>10</y>
+      <x>20</x>
+      <y>320</y>
       <width>89</width>
       <height>25</height>
      </rect>
@@ -161,12 +138,12 @@
      <string>Add Sample</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>60</y>
-      <width>231</width>
+      <x>20</x>
+      <y>20</y>
+      <width>661</width>
       <height>291</height>
      </rect>
     </property>
@@ -182,7 +159,29 @@
       </widget>
      </item>
      <item>
-      <widget class="QTableView" name="uiAssaysList"/>
+      <widget class="QTableView" name="uiAvailableAssaysTableView"/>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>20</y>
+      <width>258</width>
+      <height>641</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Summary</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="uiSummaryTableView"/>
      </item>
     </layout>
    </widget>
@@ -192,7 +191,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1164</width>
+     <width>989</width>
      <height>22</height>
     </rect>
    </property>

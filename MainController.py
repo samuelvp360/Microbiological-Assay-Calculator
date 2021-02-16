@@ -3,12 +3,12 @@
 
 import sys
 from datetime import datetime
-from PyQt5 import QtCore as qtc
-from PyQt5 import QtGui as qtg
+# from PyQt5 import QtCore as qtc
+# from PyQt5 import QtGui as qtg
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import uic
-import pandas as pd
-import numpy as np
+# import pandas as pd
+# import numpy as np
 from Models import WellDataModel, AvailableAssaysModel
 from Plotter import PlotCanvas
 from WellProcessor import WellProcessor
@@ -21,20 +21,43 @@ class MainWindow(qtw.QMainWindow):
         uic.loadUi('uiMainWindow.ui', self)
         self.assaysDict = {}
         self.model = AvailableAssaysModel(self.assaysDict)
+        self.uiAvailableAssaysTableView.setModel(self.model)
+        self.uiAvailableAssaysTableView.resizeColumnsToContents()
+        self.uiAvailableAssaysTableView.resizeRowsToContents()
         # ---------------- SIGNALS ---------------
         self.uiActionMIC.triggered.connect(lambda: self.AddAssay('MIC'))
-        self.uiAddSampleButton.clicked.connect(lambda: self.AddSample(0))
+        self.uiAddSampleButton.clicked.connect(self.AddSample)
 
     def AddAssay(self, typeOfAssay):
         position = len(self.assaysDict)
         name = self.SetAssayName()
         conc = self.SetConcentrations()
-        self.assaysDict[position] = Assay(typeOfAssay)
-        # self.assaysDict[position].numSample = self.SetNumSample()
+        while conc is False:
+            conc = self.SetConcentrations()
+        date = datetime.now()
+        self.assaysDict[position] = Assay(typeOfAssay, name, conc, date)
+        self.model.layoutChanged.emit()
+        self.uiAvailableAssaysTableView.resizeColumnsToContents()
+        self.uiAvailableAssaysTableView.resizeRowsToContents()
 
-    def AddSample(self, position):
-        self.wellProcessor = WellProcessor(self.assaysDict[position].conc)
-        self.wellProcessor.show()
+    def AddSample(self):
+        position = self.SetSelectedAssay()
+        if position is not None:
+            self.wellProcessor = WellProcessor(self.assaysDict[position].conc)
+            self.wellProcessor.show()
+        else:
+            qtw.QMessageBox.warning(
+                self, 'No Assay Selection',
+                'You have not selected an assay, please choose one assay before adding a sample'
+            )
+
+    def SetSelectedAssay(self):
+        indexes = self.uiAvailableAssaysTableView.selectedIndexes()
+        if indexes:
+            index = indexes[0]
+            return index.row()
+        else:
+            return None
 
     def SetAssayName(self):
         text, ok = qtw.QInputDialog.getText(
@@ -44,16 +67,24 @@ class MainWindow(qtw.QMainWindow):
             return text
 
     def SetConcentrations(self):
-        value, ok = qtw.QInputDialog.getDouble(
+        value, ok = qtw.QInputDialog.getText(
             self, 'Concentrations', 'Please enter the highest concentration'
         )
         if ok:
-            conc = [str(value / 2 ** i) for i in range(6)]
-            return conc
+            try:
+                conc = [str(float(value.replace(',', '.')) / 2 ** i) for i in range(6)]
+                return conc
+            except ValueError:
+                qtw.QMessageBox.warning(
+                    self, 'Not a valid number!',
+                    'You have not enter a valid number, please try again'
+                )
+                return False
 
     def SetNumSample(self):
         num, ok = qtw.QInputDialog.getInt(
-            self, 'Number of Samples', 'Please enter the number of samples'
+            self, 'Number of Samples',
+            'Please enter the number of samples per plate'
         )
         if ok:
             # try:
