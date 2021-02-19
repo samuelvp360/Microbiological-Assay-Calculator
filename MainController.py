@@ -9,7 +9,7 @@ from PyQt5 import QtWidgets as qtw
 from PyQt5 import uic
 # import pandas as pd
 # import numpy as np
-from Models import WellDataModel, AvailableAssaysModel
+from Models import AvailableAssaysModel
 from Plotter import PlotCanvas
 from WellProcessor import WellProcessor
 from Assay import Assay
@@ -26,6 +26,7 @@ class MainWindow(qtw.QMainWindow):
         self.uiAvailableAssaysTableView.resizeRowsToContents()
         # ---------------- SIGNALS ---------------
         self.uiActionMIC.triggered.connect(lambda: self.AddAssay('MIC'))
+        self.uiActionMTT.triggered.connect(lambda: self.AddAssay('MTT'))
         self.uiAddSampleButton.clicked.connect(self.AddSample)
 
     def AddAssay(self, typeOfAssay):
@@ -42,9 +43,27 @@ class MainWindow(qtw.QMainWindow):
 
     def AddSample(self):
         position = self.SetSelectedAssay()
+        items = ['1', '2', '3', '4']
         if position is not None:
-            self.wellProcessor = WellProcessor(self.assaysDict[position].conc)
-            self.wellProcessor.show()
+            samples, ok1 = qtw.QInputDialog.getItem(
+                self, 'Number of Samples', 'Choose the number of samples per plate',
+                items, 0, False
+            )
+            if int(samples) == 3:
+                del items[3]
+            elif int(samples) == 4:
+                del items[2:]
+            replicas, ok2 = qtw.QInputDialog.getItem(
+                self, 'Number of Samples', 'Choose the number of replicas',
+                items, 0, False
+            )
+            if ok1 and ok2:
+                self.wellProcessor = WellProcessor(
+                    self.assaysDict[position].conc, int(samples), int(replicas)
+                )
+                self.wellProcessor.show()
+            else:
+                return False
         else:
             qtw.QMessageBox.warning(
                 self, 'No Assay Selection',
@@ -80,15 +99,6 @@ class MainWindow(qtw.QMainWindow):
                     'You have not enter a valid number, please try again'
                 )
                 return False
-
-    def SetNumSample(self):
-        num, ok = qtw.QInputDialog.getInt(
-            self, 'Number of Samples',
-            'Please enter the number of samples per plate'
-        )
-        if ok:
-            # try:
-            return int(num)
 
 
 if __name__ == '__main__':

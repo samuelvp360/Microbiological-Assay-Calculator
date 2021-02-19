@@ -14,128 +14,17 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="uiComputeButton">
-    <property name="enabled">
-     <bool>false</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>590</x>
-      <y>450</y>
-      <width>89</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Compute</string>
-    </property>
-   </widget>
-   <widget class="QTableView" name="uiWellTableView">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>390</y>
-      <width>561</width>
-      <height>271</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_7">
-    <property name="geometry">
-     <rect>
-      <x>510</x>
-      <y>360</y>
-      <width>67</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Blank</string>
-    </property>
-   </widget>
-   <widget class="QWidget" name="layoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>290</x>
-      <y>354</y>
-      <width>206</width>
-      <height>27</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
-     <item>
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>Sample 2</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="uiComp2Line">
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Name of the Second Compound&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QPushButton" name="uiSubstractButton">
-    <property name="geometry">
-     <rect>
-      <x>590</x>
-      <y>400</y>
-      <width>89</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Substract</string>
-    </property>
-   </widget>
-   <widget class="QWidget" name="layoutWidget_2">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>354</y>
-      <width>206</width>
-      <height>27</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Sample 1</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="uiComp1Line">
-       <property name="toolTip">
-        <string>Name of the First Compound</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
    <widget class="QPushButton" name="uiAddSampleButton">
     <property name="geometry">
      <rect>
       <x>20</x>
       <y>320</y>
-      <width>89</width>
+      <width>101</width>
       <height>25</height>
      </rect>
     </property>
     <property name="text">
-     <string>Add Sample</string>
+     <string>Add Samples</string>
     </property>
    </widget>
    <widget class="QWidget" name="layoutWidget">
@@ -163,7 +52,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>690</x>
@@ -184,6 +73,17 @@
       <widget class="QTableView" name="uiSummaryTableView"/>
      </item>
     </layout>
+   </widget>
+   <widget class="QWidget" name="verticalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>350</y>
+      <width>661</width>
+      <height>311</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="uiPlotLayout"/>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

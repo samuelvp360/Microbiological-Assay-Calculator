@@ -2,19 +2,28 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore as qtc
+from PyQt5 import QtGui as qtg
 from datetime import datetime
+import numpy as np
 
 
 class WellDataModel(qtc.QAbstractTableModel):
     '''Model to populate the Well Data Table'''
 
-    def __init__(self, data):
+    def __init__(self, data, samplePositions, colors):
         super().__init__()
         self._data = data
+        self._samplePositions = samplePositions
+        self._numOfSamples = len(samplePositions)
+        self._colors = colors
 
     def data(self, index, role):
         if role == qtc.Qt.DisplayRole:
-            return str(self._data.iloc[index.column(), index.row()])
+            value = self._data.iloc[index.column(), index.row()]
+            if np.isnan(value):
+                return ''
+            else:
+                return str(value)
         if role == qtc.Qt.TextAlignmentRole:
             return qtc.Qt.AlignCenter
 
@@ -38,7 +47,14 @@ class WellDataModel(qtc.QAbstractTableModel):
             if orientation == qtc.Qt.Horizontal:
                 return str(section + 1)
             if orientation == qtc.Qt.Vertical:
-                return str(section + 1)
+                return self._data.columns[section] + ' ug/mL'
+        if role == qtc.Qt.BackgroundRole:
+            if orientation == qtc.Qt.Horizontal:
+                for i in range(self._numOfSamples):
+                    if self._samplePositions[i][0] is not None and self._samplePositions[i][0] <= section + 1 <= self._samplePositions[i][1]:
+                        return qtg.QColor(self._colors[i])
+                if self._samplePositions[-1][0] is not None and section + 1 > self._samplePositions[-1][1]:
+                    return qtg.QColor(self._colors[-1])
 
     def flags(self, index):
         return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
