@@ -14,24 +14,11 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="uiAddSampleButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>320</y>
-      <width>101</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Add Samples</string>
-    </property>
-   </widget>
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>20</y>
+      <y>70</y>
       <width>661</width>
       <height>291</height>
      </rect>
@@ -48,15 +35,33 @@
       </widget>
      </item>
      <item>
-      <widget class="QTableView" name="uiAvailableAssaysTableView"/>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QPushButton" name="uiAddAssayButton">
+         <property name="text">
+          <string>Add</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uiDelAssayButton">
+         <property name="text">
+          <string>Remove</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QTableView" name="uiAssaysTableView"/>
      </item>
     </layout>
    </widget>
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>690</x>
-      <y>20</y>
+      <x>700</x>
+      <y>30</y>
       <width>258</width>
       <height>641</height>
      </rect>
@@ -65,12 +70,33 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Summary</string>
+        <string>Samples</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QTableView" name="uiSummaryTableView"/>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="uiAddSampleButton">
+         <property name="text">
+          <string>Add</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uiDelSampleButton">
+         <property name="text">
+          <string>Remove</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QTableView" name="uiSamplesTableView"/>
      </item>
     </layout>
    </widget>
@@ -78,12 +104,38 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>350</y>
+      <y>370</y>
       <width>661</width>
       <height>311</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="uiPlotLayout"/>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>661</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="uiCommitButton">
+       <property name="text">
+        <string>Store changes</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="uiDiscardButton">
+       <property name="text">
+        <string>Discard changes</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -95,20 +147,6 @@
      <height>22</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>File</string>
-    </property>
-    <widget class="QMenu" name="menuNew_Assay">
-     <property name="title">
-      <string>New Assay</string>
-     </property>
-     <addaction name="uiActionMIC"/>
-     <addaction name="uiActionMTT"/>
-    </widget>
-    <addaction name="menuNew_Assay"/>
-   </widget>
-   <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="uiActionMIC">
@@ -119,6 +157,26 @@
   <action name="uiActionMTT">
    <property name="text">
     <string>MTT</string>
+   </property>
+  </action>
+  <action name="actionCommit_changes">
+   <property name="text">
+    <string>Commit changes</string>
+   </property>
+  </action>
+  <action name="actionDiscard_changes">
+   <property name="text">
+    <string>Discard changes</string>
+   </property>
+  </action>
+  <action name="actionAdd_Sample">
+   <property name="text">
+    <string>Add Sample(s)</string>
+   </property>
+  </action>
+  <action name="actionRemove_Sample_s">
+   <property name="text">
+    <string>Remove Sample(s)</string>
    </property>
   </action>
  </widget>

@@ -3,13 +3,13 @@
 
 import sys
 from datetime import datetime
-# from PyQt5 import QtCore as qtc
+from PyQt5 import QtCore as qtc
 # from PyQt5 import QtGui as qtg
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import uic
 # import pandas as pd
 # import numpy as np
-from Models import AvailableAssaysModel
+from Models import AssaysModel
 from Plotter import PlotCanvas
 from WellProcessor import WellProcessor
 from Assay import Assay
@@ -18,40 +18,46 @@ from Assay import Assay
 class MainWindow(qtw.QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('uiMainWindow.ui', self)
-        self.assaysDict = {}
-        self.model = AvailableAssaysModel(self.assaysDict)
-        self.uiAvailableAssaysTableView.setModel(self.model)
-        self.uiAvailableAssaysTableView.resizeColumnsToContents()
-        self.uiAvailableAssaysTableView.resizeRowsToContents()
+        uic.loadUi('Views/uiMainWindow.ui', self)
+        self.assaysList = []
+        self.model = AssaysModel(self.assaysList)
+        self.uiAssaysTableView.setModel(self.model)
+        self.uiAssaysTableView.resizeColumnsToContents()
+        self.uiAssaysTableView.resizeRowsToContents()
         # ---------------- SIGNALS ---------------
-        self.uiActionMIC.triggered.connect(lambda: self.AddAssay('MIC'))
-        self.uiActionMTT.triggered.connect(lambda: self.AddAssay('MTT'))
+        self.uiAddAssayButton.clicked.connect(self.AddAssay)
+        self.uiDelAssayButton.clicked.connect(self.RemoveAssay)
         self.uiAddSampleButton.clicked.connect(self.AddSample)
+        self.uiDelSampleButton.clicked.connect(self.RemoveSample)
 
-    def AddAssay(self, typeOfAssay):
-        position = len(self.assaysDict)
+    def AddAssay(self):
+        assaysList = ('MIC', 'MTT')
+        typeOfAssay, ok = qtw.QInputDialog.getItem(
+            self, 'Type of Assay', 'Choose the type of assay to add',
+            assaysList, 0, False
+        )
         name = self.SetAssayName()
         conc = self.SetConcentrations()
         while conc is False:
             conc = self.SetConcentrations()
         date = datetime.now()
-        self.assaysDict[position] = Assay(typeOfAssay, name, conc, date)
+        assay = Assay(typeOfAssay, name, conc, date)
+        self.assaysList.append(assay)
         self.model.layoutChanged.emit()
-        self.uiAvailableAssaysTableView.resizeColumnsToContents()
-        self.uiAvailableAssaysTableView.resizeRowsToContents()
+        self.uiAssaysTableView.resizeColumnsToContents()
+        self.uiAssaysTableView.resizeRowsToContents()
 
     def AddSample(self):
-        position = self.SetSelectedAssay()
+        index = self.SetSelected('assay')
         items = ['1', '2', '3', '4']
-        if position is not None:
-            samples, ok1 = qtw.QInputDialog.getItem(
+        if index is not None:
+            numOfSamples, ok1 = qtw.QInputDialog.getItem(
                 self, 'Number of Samples', 'Choose the number of samples per plate',
                 items, 0, False
             )
-            if int(samples) == 3:
+            if int(numOfSamples) == 3:
                 del items[3]
-            elif int(samples) == 4:
+            elif int(numOfSamples) == 4:
                 del items[2:]
             replicas, ok2 = qtw.QInputDialog.getItem(
                 self, 'Number of Samples', 'Choose the number of replicas',
@@ -59,8 +65,10 @@ class MainWindow(qtw.QMainWindow):
             )
             if ok1 and ok2:
                 self.wellProcessor = WellProcessor(
-                    self.assaysDict[position].conc, int(samples), int(replicas)
+                    self.assaysList[index].name, self.assaysList[index].conc,
+                    int(numOfSamples), int(replicas)
                 )
+                self.wellProcessor.submitted.connect(self.SampleProcessor)
                 self.wellProcessor.show()
             else:
                 return False
@@ -70,8 +78,30 @@ class MainWindow(qtw.QMainWindow):
                 'You have not selected an assay, please choose one assay before adding a sample'
             )
 
-    def SetSelectedAssay(self):
-        indexes = self.uiAvailableAssaysTableView.selectedIndexes()
+    def RemoveAssay(self):
+        index = self.SetSelected('assay')
+        if index is not None:
+            del self.assaysList[index]
+            self.model.layoutChanged.emit()
+
+    def RemoveSample(self):
+        assayIndex = self.SetSelected('assay')
+        sampleIndex = self.SetSelected('sample')
+        if assayIndex is not None and sampleIndex is not None:
+            del self.assaysList[assayIndex].samplesDict[sampleIndex]
+            self.model.layoutChanged.emit()
+            self.assaysList[assayIndex].model.layoutChanged.emit()
+
+    @qtc.pyqtSlot(object, list)
+    def SampleProcessor(self, dataFrame, samples):
+        pass
+
+    def SetSelected(self, kind):
+        if kind == 'assay':
+            indexes = self.uiAssaysTableView.selectedIndexes()
+        elif kind == 'sample':
+            indexes = self.uiSamplesTableView.selectedIndexes()
+
         if indexes:
             index = indexes[0]
             return index.row()

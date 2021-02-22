@@ -10,11 +10,12 @@ import numpy as np
 class WellDataModel(qtc.QAbstractTableModel):
     '''Model to populate the Well Data Table'''
 
-    def __init__(self, data, samplePositions, colors):
+    def __init__(self, data, samplePositions, colors, inhibition=False):
         super().__init__()
         self._data = data
         self._samplePositions = samplePositions
         self._numOfSamples = len(samplePositions)
+        self._inhibition = inhibition
         self._colors = colors
 
     def data(self, index, role):
@@ -37,10 +38,10 @@ class WellDataModel(qtc.QAbstractTableModel):
                 return False
 
     def rowCount(self, index):
-        return 6
+        return self._data.shape[1]
 
     def columnCount(self, index):
-        return 10
+        return self._data.shape[0]
 
     def headerData(self, section, orientation, role):
         if role == qtc.Qt.DisplayRole:
@@ -53,14 +54,12 @@ class WellDataModel(qtc.QAbstractTableModel):
                 for i in range(self._numOfSamples):
                     if self._samplePositions[i][0] is not None and self._samplePositions[i][0] <= section + 1 <= self._samplePositions[i][1]:
                         return qtg.QColor(self._colors[i])
-                if self._samplePositions[-1][0] is not None and section + 1 > self._samplePositions[-1][1]:
-                    return qtg.QColor(self._colors[-1])
 
     def flags(self, index):
         return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
 
 
-class AvailableAssaysModel(qtc.QAbstractTableModel):
+class AssaysModel(qtc.QAbstractTableModel):
     '''Model to populate the Well Data Table'''
 
     def __init__(self, data):
@@ -122,3 +121,4 @@ class AvailableAssaysModel(qtc.QAbstractTableModel):
 
     def flags(self, index):
         return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
+

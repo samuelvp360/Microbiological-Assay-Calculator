@@ -3,23 +3,37 @@
 
 import pandas as pd
 import numpy as np
+from io import StringIO
+import csv
 from PyQt5 import QtWidgets as qtw
+from PyQt5 import QtCore as qtc
+from PyQt5 import QtGui as qtg
 from PyQt5 import uic
 from Models import WellDataModel
 
 
 class WellProcessor(qtw.QWidget):
-    def __init__(self, conc, samplesPerPlate, replicas):
+
+    submitted = qtc.pyqtSignal(object, list)
+
+    def __init__(self, name, conc, samplesPerPlate, replicas):
         super().__init__()
-        uic.loadUi('uiWellProcessor.ui', self)
+        uic.loadUi('Views/uiWellProcessor.ui', self)
+        self.setWindowTitle(f'Adding samples to {name} assay')
+        self.uiSubmitT0Button.setVisible(False)
+        self.uiSubmitSampleButton.setVisible(False)
+        self.uiCalculateButton.setVisible(False)
         self.samplesPerPlate = samplesPerPlate
-        self.df = pd.DataFrame([6 * [np.nan] for _ in range(10)], columns=conc)
-        self.df['line'] = range(1, 11)
-        self.df = self.df.set_index('line')
+        self.conc = conc
+        self.ResetDataFrame('Tf')
         self.samplePositions = [
             [(replicas * i) + 1, (replicas * i) + replicas] for i in range(samplesPerPlate)
         ]
-        self.samples, self.sampleRanges = self.SetSamples(self.samplePositions)
+        missingSamples = 5 - samplesPerPlate
+        [self.samplePositions.append([None, None]) for _ in range(missingSamples) if missingSamples != 0]
+        lastSample = sorted([i[-1] for i in self.samplePositions if i[0] is not None])
+        self.samplePositions.append([lastSample[-1] + 1, 10])
+        self.samples, self.sampleRanges = self.SetSamples(self.df, self.samplePositions)
         self.colors = [
             '#ff0000', '#0000ff', '#ffff00', '#00ff00', '#ff00ff', '#ffffff'
         ]
@@ -28,23 +42,90 @@ class WellProcessor(qtw.QWidget):
             self.uiSample2Button,
             self.uiSample3Button,
             self.uiSample4Button,
-            self.uiSample5Button
+            self.uiSample5Button,
+            self.uiBlankButton
         ]
-        [self.sampleButtons[i].setStyleSheet('background-color: ' + self.colors[i]) for i in range(5)]
+        [self.sampleButtons[i].setStyleSheet('background-color: ' + self.colors[i]) for i in range(6)]
         [self.sampleButtons[i].setVisible(False) for i in range(5) if i >= self.samplesPerPlate]
         self.model = WellDataModel(self.df, self.samplePositions, self.colors)
         self.uiWellTableView.setModel(self.model)
         self.model.layoutChanged.emit()
+        self.uiWellTableView.installEventFilter(self)
         # ---------------SIGNALS-----------------
         self.sampleButtons[0].clicked.connect(lambda: self.SampleSelection(1))
         self.sampleButtons[1].clicked.connect(lambda: self.SampleSelection(2))
         self.sampleButtons[2].clicked.connect(lambda: self.SampleSelection(3))
         self.sampleButtons[3].clicked.connect(lambda: self.SampleSelection(4))
         self.sampleButtons[4].clicked.connect(lambda: self.SampleSelection(5))
+        self.sampleButtons[5].clicked.connect(lambda: self.SampleSelection(6))
+        self.uiSubmitTfButton.clicked.connect(self.SubmitTf)
+        self.uiSubmitT0Button.clicked.connect(self.SubmitT0)
+        self.uiCalculateButton.clicked.connect(self.Calculate)
+        self.uiSubmitSampleButton.clicked.connect(self.SubmitSample)
 
-    def SetSamples(self, positions):
-        ranges = [range(i, j + 1) for i, j in positions]
-        samples = {f'Sample {k + 1}': self.df.loc[i:j] for k, [i, j] in enumerate(positions)}
+    def eventFilter(self, source, event):
+        if event.type() == qtc.QEvent.KeyPress and event.matches(qtg.QKeySequence.Copy):
+            self.CopySelection()
+            return True
+        elif event.type() == qtc.QEvent.KeyPress and event.matches(qtg.QKeySequence.Paste):
+            self.PasteSelection()
+            return True
+        return super().eventFilter(source, event)
+
+    def CopySelection(self):
+        selection = self.uiWellTableView.selectedIndexes()
+        if selection:
+            rows = sorted(index.row() for index in selection)
+            columns = sorted(index.column() for index in selection)
+            rowcount = rows[-1] - rows[0] + 1
+            colcount = columns[-1] - columns[0] + 1
+            table = [[''] * colcount for _ in range(rowcount)]
+            for index in selection:
+                row = index.row() - rows[0]
+                column = index.column() - columns[0]
+                table[row][column] = index.data()
+            stream = StringIO()
+            csv.writer(stream).writerows(table)
+            qtw.qApp.clipboard().setText(stream.getvalue())
+
+    def PasteSelection(self):
+        selection = self.uiWellTableView.selectedIndexes()
+        if selection:
+            buffer = qtw.qApp.clipboard().text()
+            rows = sorted(index.row() for index in selection)
+            columns = sorted(index.column() for index in selection)
+            reader = csv.reader(StringIO(buffer), delimiter='\t')
+            for i, line in enumerate(reader):
+                if rows[0] + i <= 5:
+                    for j, cell in enumerate(line):
+                        if columns[0] + j <= 9:
+                            self.df.iloc[columns[0] + j, rows[0] + i] = float(cell.replace(',', '.'))
+            self.model.layoutChanged.emit()
+        # return
+
+    def ResetDataFrame(self, step):
+        if step == 'Tf':
+            theTime = 'Final Time'
+        elif step == 'T0':
+            theTime = 'Time 0'
+        self.df = pd.DataFrame([6 * [np.nan] for _ in range(10)], columns=self.conc)
+        self.df['line'] = range(1, 11)
+        self.df = self.df.set_index('line')
+        self.uiTimeLabel.setText(step)
+        self.uiTimeLabel.setStyleSheet('color: red')
+        self.uiMessageLabel.setStyleSheet('color: red')
+        self.uiMessageLabel.setText(
+            f'Please enter the data from your assay at {theTime}'
+        )
+
+    def SetSamples(self, data, positions):
+        ranges = []
+        for i, j in positions:
+            if i is not None:
+                ranges.append(range(i, j + 1))
+            else:
+                ranges.append([None, None])
+        samples = [data.loc[i:j].copy() for i, j in positions if i is not None]
         return samples, ranges
 
     def SampleSelection(self, sampleIdx):
@@ -53,10 +134,51 @@ class WellProcessor(qtw.QWidget):
             first = indexes[0].column() + 1
             last = indexes[-1].column() + 1
             self.samplePositions[sampleIdx - 1] = [first, last]
-            self.samples, self.sampleRanges = self.SetSamples(self.samplePositions)
+            self.samples, self.sampleRanges = self.SetSamples(self.df, self.samplePositions)
             for idx, i in enumerate(self.sampleRanges, start=1):
                 if (first in i or last in i) and idx != sampleIdx:
                     self.samplePositions[idx - 1] = [None, None]
-                    self.samples[f'Sample {idx}'] = [None, None]
+                    self.samples[idx] = [None, None]
             self.model.layoutChanged.emit()
+
+    def SubmitTf(self):
+        self.Tf = self.df.copy()
+        self.ResetDataFrame('T0')
+        self.model = WellDataModel(self.df, self.samplePositions, self.colors)
+        self.uiWellTableView.setModel(self.model)
+        self.model.layoutChanged.emit()
+        self.uiSubmitTfButton.setVisible(False)
+        self.uiSubmitT0Button.setVisible(True)
+        [self.sampleButtons[i].setVisible(False) for i in range(6)]
+
+    def SubmitT0(self):
+        self.TfminusT0 = self.Tf - self.df
+        self.samples, self.sampleRanges = self.SetSamples(self.TfminusT0, self.samplePositions)
+        self.model = WellDataModel(self.TfminusT0, self.samplePositions, self.colors)
+        self.uiWellTableView.setModel(self.model)
+        self.model.layoutChanged.emit()
+        self.uiSubmitT0Button.setVisible(False)
+        self.uiCalculateButton.setVisible(True)
+        self.uiMessageLabel.setText(
+            'Verify your data and edit it befor Sample Submission'
+        )
+
+    def Calculate(self):
+        self.uiMessageLabel.setText('')
+        blankMean = self.samples[-1].stack().mean()
+        blankStd = self.samples[-1].stack().std()
+        self.uiBlankMeanLabel.setText(f'Blank Mean: {str(round(blankMean, 3))}')
+        self.uiBlankStdLabel.setText(f'Blank Standard dev.: {str(round(blankStd, 3))}')
+        for i, sample in enumerate(self.samples[:-1]):
+            self.samples[i] = sample.applymap(lambda x: (blankMean - x) * 100 / blankMean)
+            means = self.samples[i].mean()
+            desvest = self.samples[i].std()
+            self.samples[i].loc['Mean'] = means
+            self.samples[i].loc['Std'] = desvest
+        # hacer el nuevo DataFrame con los %Inh calculados para cada muestra y
+        # sus respectivas medias y desvest
+        print(self.samples)
+
+    def SubmitSample(self):
+        pass
 
