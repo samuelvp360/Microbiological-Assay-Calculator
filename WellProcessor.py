@@ -14,7 +14,7 @@ from Models import WellDataModel
 
 class WellProcessor(qtw.QWidget):
 
-    submitted = qtc.pyqtSignal(object, list)
+    submitted = qtc.pyqtSignal(list, list, list, object, object)
 
     def __init__(self, name, conc, samplesPerPlate, replicas):
         super().__init__()
@@ -29,35 +29,46 @@ class WellProcessor(qtw.QWidget):
         self.samplePositions = [
             [(replicas * i) + 1, (replicas * i) + replicas] for i in range(samplesPerPlate)
         ]
-        missingSamples = 5 - samplesPerPlate
+        missingSamples = 4 - samplesPerPlate
         [self.samplePositions.append([None, None]) for _ in range(missingSamples) if missingSamples != 0]
         lastSample = sorted([i[-1] for i in self.samplePositions if i[0] is not None])
         self.samplePositions.append([lastSample[-1] + 1, 10])
         self.samples, self.sampleRanges = self.SetSamples(self.df, self.samplePositions)
+        self.sampleNames = ['' for _ in range(self.samplesPerPlate)]
         self.colors = [
-            '#ff0000', '#0000ff', '#ffff00', '#00ff00', '#ff00ff', '#ffffff'
+            '#ff0000', '#0000ff', '#ffff00', '#00ff00', '#ffffff'
         ]
         self.sampleButtons = [
             self.uiSample1Button,
             self.uiSample2Button,
             self.uiSample3Button,
             self.uiSample4Button,
-            self.uiSample5Button,
             self.uiBlankButton
         ]
-        [self.sampleButtons[i].setStyleSheet('background-color: ' + self.colors[i]) for i in range(6)]
-        [self.sampleButtons[i].setVisible(False) for i in range(5) if i >= self.samplesPerPlate]
+        self.sampleNameLabels = [
+            self.uiSample1NameLine,
+            self.uiSample2NameLine,
+            self.uiSample3NameLine,
+            self.uiSample4NameLine,
+        ]
+        [self.sampleButtons[i].setStyleSheet('background-color: ' + self.colors[i]) for i in range(5)]
+        [self.sampleNameLabels[i].setStyleSheet('color: ' + self.colors[i]) for i in range(4)]
+        [self.sampleButtons[i].setVisible(False) for i in range(4) if i >= self.samplesPerPlate]
+        [self.sampleNameLabels[i].setVisible(False) for i in range(4) if i >= self.samplesPerPlate]
         self.model = WellDataModel(self.df, self.samplePositions, self.colors)
         self.uiWellTableView.setModel(self.model)
         self.model.layoutChanged.emit()
         self.uiWellTableView.installEventFilter(self)
         # ---------------SIGNALS-----------------
-        self.sampleButtons[0].clicked.connect(lambda: self.SampleSelection(1))
-        self.sampleButtons[1].clicked.connect(lambda: self.SampleSelection(2))
-        self.sampleButtons[2].clicked.connect(lambda: self.SampleSelection(3))
-        self.sampleButtons[3].clicked.connect(lambda: self.SampleSelection(4))
-        self.sampleButtons[4].clicked.connect(lambda: self.SampleSelection(5))
-        self.sampleButtons[5].clicked.connect(lambda: self.SampleSelection(6))
+        self.sampleButtons[0].clicked.connect(lambda: self.SampleSelection(0))
+        self.sampleButtons[1].clicked.connect(lambda: self.SampleSelection(1))
+        self.sampleButtons[2].clicked.connect(lambda: self.SampleSelection(2))
+        self.sampleButtons[3].clicked.connect(lambda: self.SampleSelection(3))
+        self.sampleButtons[4].clicked.connect(lambda: self.SampleSelection(4))
+        self.sampleNameLabels[0].textChanged.connect(lambda: self.SetNames(0))
+        self.sampleNameLabels[1].textChanged.connect(lambda: self.SetNames(1))
+        self.sampleNameLabels[2].textChanged.connect(lambda: self.SetNames(2))
+        self.sampleNameLabels[3].textChanged.connect(lambda: self.SetNames(3))
         self.uiSubmitTfButton.clicked.connect(self.SubmitTf)
         self.uiSubmitT0Button.clicked.connect(self.SubmitT0)
         self.uiCalculateButton.clicked.connect(self.Calculate)
@@ -101,7 +112,6 @@ class WellProcessor(qtw.QWidget):
                         if columns[0] + j <= 9:
                             self.df.iloc[columns[0] + j, rows[0] + i] = float(cell.replace(',', '.'))
             self.model.layoutChanged.emit()
-        # return
 
     def ResetDataFrame(self, step):
         if step == 'Tf':
@@ -128,57 +138,89 @@ class WellProcessor(qtw.QWidget):
         samples = [data.loc[i:j].copy() for i, j in positions if i is not None]
         return samples, ranges
 
+    def SetNames(self, sampleIdx):
+        self.sampleNames[sampleIdx] = self.sampleNameLabels[sampleIdx].text()
+
     def SampleSelection(self, sampleIdx):
         indexes = self.uiWellTableView.selectedIndexes()
         if indexes:
             first = indexes[0].column() + 1
             last = indexes[-1].column() + 1
-            self.samplePositions[sampleIdx - 1] = [first, last]
+            self.samplePositions[sampleIdx] = [first, last]
             self.samples, self.sampleRanges = self.SetSamples(self.df, self.samplePositions)
-            for idx, i in enumerate(self.sampleRanges, start=1):
+            for idx, i in enumerate(self.sampleRanges):
                 if (first in i or last in i) and idx != sampleIdx:
-                    self.samplePositions[idx - 1] = [None, None]
+                    self.samplePositions[idx] = [None, None]
                     self.samples[idx] = [None, None]
             self.model.layoutChanged.emit()
 
     def SubmitTf(self):
-        self.Tf = self.df.copy()
-        self.ResetDataFrame('T0')
-        self.model = WellDataModel(self.df, self.samplePositions, self.colors)
-        self.uiWellTableView.setModel(self.model)
-        self.model.layoutChanged.emit()
-        self.uiSubmitTfButton.setVisible(False)
-        self.uiSubmitT0Button.setVisible(True)
-        [self.sampleButtons[i].setVisible(False) for i in range(6)]
+        if '' in self.sampleNames[:self.samplesPerPlate + 1]:
+            qtw.QMessageBox.warning(
+                self, 'Missing Name(s)', 'Please enter the name of all samples before continue',
+                qtw.QMessageBox.Ok
+            )
+        else:
+            self.Tf = self.df.copy()
+            self.ResetDataFrame('T0')
+            self.model = WellDataModel(self.df, self.samplePositions, self.colors)
+            self.uiWellTableView.setModel(self.model)
+            self.model.layoutChanged.emit()
+            self.uiSubmitTfButton.setVisible(False)
+            self.uiSubmitT0Button.setVisible(True)
+            [self.sampleButtons[i].setVisible(False) for i in range(5)]
 
     def SubmitT0(self):
-        self.TfminusT0 = self.Tf - self.df
-        self.samples, self.sampleRanges = self.SetSamples(self.TfminusT0, self.samplePositions)
-        self.model = WellDataModel(self.TfminusT0, self.samplePositions, self.colors)
-        self.uiWellTableView.setModel(self.model)
-        self.model.layoutChanged.emit()
-        self.uiSubmitT0Button.setVisible(False)
-        self.uiCalculateButton.setVisible(True)
-        self.uiMessageLabel.setText(
-            'Verify your data and edit it befor Sample Submission'
-        )
+        if '' in self.sampleNames[:self.samplesPerPlate + 1]:
+            qtw.QMessageBox.warning(
+                self, 'Missing Name(s)', 'Please enter the name of all samples before continue',
+                qtw.QMessageBox.Ok
+            )
+        else:
+            self.T0 = self.df.copy()
+            self.TfminusT0 = self.Tf - self.T0
+            self.samples, self.sampleRanges = self.SetSamples(self.TfminusT0, self.samplePositions)
+            self.model = WellDataModel(self.TfminusT0, self.samplePositions, self.colors)
+            self.uiWellTableView.setModel(self.model)
+            self.model.layoutChanged.emit()
+            self.uiSubmitT0Button.setVisible(False)
+            self.uiCalculateButton.setVisible(True)
+            self.uiMessageLabel.setText(
+                'Verify your data and edit it befor Sample Submission'
+            )
 
     def Calculate(self):
-        self.uiMessageLabel.setText('')
-        blankMean = self.samples[-1].stack().mean()
-        blankStd = self.samples[-1].stack().std()
-        self.uiBlankMeanLabel.setText(f'Blank Mean: {str(round(blankMean, 3))}')
-        self.uiBlankStdLabel.setText(f'Blank Standard dev.: {str(round(blankStd, 3))}')
-        for i, sample in enumerate(self.samples[:-1]):
-            self.samples[i] = sample.applymap(lambda x: (blankMean - x) * 100 / blankMean)
-            means = self.samples[i].mean()
-            desvest = self.samples[i].std()
-            self.samples[i].loc['Mean'] = means
-            self.samples[i].loc['Std'] = desvest
-        # hacer el nuevo DataFrame con los %Inh calculados para cada muestra y
-        # sus respectivas medias y desvest
-        print(self.samples)
+        if '' in self.sampleNames[:self.samplesPerPlate + 1]:
+            qtw.QMessageBox.warning(
+                self, 'Missing Name(s)', 'Please enter the name of all samples before continue',
+                qtw.QMessageBox.Ok
+            )
+        else:
+            self.uiMessageLabel.setText('')
+            self.uiTimeLabel.setText('')
+            self.uiCalculateButton.setVisible(False)
+            self.uiSubmitSampleButton.setVisible(True)
+            blankMean = self.samples[-1].stack().mean()
+            blankStd = self.samples[-1].stack().std()
+            self.uiBlankMeanLabel.setText(f'Blank Mean: {str(round(blankMean, 3))}')
+            self.uiBlankStdLabel.setText(f'Blank Standard dev.: {str(round(blankStd, 3))}')
+            self.uiBlankMeanLabel.setStyleSheet('background-color: #037272\ncolor: #ffffff')
+            self.uiBlankStdLabel.setStyleSheet('background-color: #720303\ncolor: #ffffff')
+            for i, sample in enumerate(self.samples[:-1]):
+                self.samples[i] = sample.applymap(lambda x: (blankMean - x) * 100 / blankMean)
+                means = self.samples[i].mean()
+                desvest = self.samples[i].std()
+                self.samples[i].loc['Mean'] = means
+                self.samples[i].loc['Std'] = desvest
+            self.percentInhib = self.samples[0].append(self.samples[1:-1])
+            self.model = WellDataModel(self.percentInhib, self.samplePositions, self.colors)
+            self.uiWellTableView.setModel(self.model)
+            self.model.layoutChanged.emit()
 
     def SubmitSample(self):
-        pass
+        self.submitted.emit(
+            self.samples, self.sampleNames, self.samplePositions, self.Tf, self.T0
+        )
+        # antes de cerrar, pedir confirmación de la información que se va a guardar
+        self.close()
 

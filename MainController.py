@@ -9,7 +9,7 @@ from PyQt5 import QtWidgets as qtw
 from PyQt5 import uic
 # import pandas as pd
 # import numpy as np
-from Models import AssaysModel
+from Models import AssaysModel, SamplesModel
 from Plotter import PlotCanvas
 from WellProcessor import WellProcessor
 from Assay import Assay
@@ -92,9 +92,16 @@ class MainWindow(qtw.QMainWindow):
             self.model.layoutChanged.emit()
             self.assaysList[assayIndex].model.layoutChanged.emit()
 
-    @qtc.pyqtSlot(object, list)
-    def SampleProcessor(self, dataFrame, samples):
-        pass
+    @qtc.pyqtSlot(list, list, list, object, object)
+    def SampleProcessor(self, samples, sampleNames, samplesPositions, Tf, T0):
+        index = self.SetSelected('assay')
+        assay = self.assaysList[index]
+        assay.StoreSamples(samples, sampleNames, samplesPositions, Tf, T0)
+        self.samplesModel = SamplesModel(assay.samples, assay.conc)
+        self.uiSamplesTableView.setModel(self.samplesModel)
+        self.samplesModel.layoutChanged.emit()
+        self.uiSamplesTableView.resizeColumnsToContents()
+        self.uiSamplesTableView.resizeRowsToContents()
 
     def SetSelected(self, kind):
         if kind == 'assay':

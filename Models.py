@@ -17,9 +17,10 @@ class WellDataModel(qtc.QAbstractTableModel):
         self._numOfSamples = len(samplePositions)
         self._inhibition = inhibition
         self._colors = colors
+        self._indexes = self._data.index.values.tolist()
 
     def data(self, index, role):
-        if role == qtc.Qt.DisplayRole:
+        if role == qtc.Qt.DisplayRole or role == qtc.Qt.EditRole:
             value = self._data.iloc[index.column(), index.row()]
             if np.isnan(value):
                 return ''
@@ -46,14 +47,21 @@ class WellDataModel(qtc.QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if role == qtc.Qt.DisplayRole:
             if orientation == qtc.Qt.Horizontal:
-                return str(section + 1)
+                return str(self._indexes[section])
             if orientation == qtc.Qt.Vertical:
-                return self._data.columns[section] + ' ug/mL'
+                return self._data.columns[section] + u' \u00B5g/mL'
         if role == qtc.Qt.BackgroundRole:
             if orientation == qtc.Qt.Horizontal:
-                for i in range(self._numOfSamples):
-                    if self._samplePositions[i][0] is not None and self._samplePositions[i][0] <= section + 1 <= self._samplePositions[i][1]:
-                        return qtg.QColor(self._colors[i])
+                column = self._indexes[section]
+                if column == 'Mean':
+                    return qtg.QColor('#037272')
+                elif column == 'Std':
+                    return qtg.QColor('#720303')
+                else:
+                    for i in range(self._numOfSamples):
+                        if self._samplePositions[i][0] is not None and \
+                           self._samplePositions[i][0] <= int(column) <= self._samplePositions[i][1]:
+                            return qtg.QColor(self._colors[i])
 
     def flags(self, index):
         return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
@@ -115,10 +123,41 @@ class AssaysModel(qtc.QAbstractTableModel):
                 elif section == 2:
                     return 'Number of Samples'
                 elif section == 3:
-                    return 'Conc. (ug/mL)'
+                    return u'Conc. (\u00B5g/mL)'
                 elif section == 4:
                     return 'Date'
 
     def flags(self, index):
         return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
+
+
+class SamplesModel(qtc.QAbstractTableModel):
+    def __init__(self, data, conc):
+        super().__init__()
+        self._data = data
+        self._conc = conc
+        self._names = [i for i in self._data.keys()]
+
+    def data(self, index, role):
+        if role == qtc.Qt.DisplayRole:
+            thisConc = self._conc[index.column()]
+            inhibition = self._data[self._names[index.row()]]['Inhibition'].loc['Mean', thisConc]
+            std = self._data[self._names[index.row()]]['Inhibition'].loc['Std', thisConc]
+            return str(round(inhibition, 3)) + u' \u00B1 ' + str(round(std, 3))
+
+    def rowCount(self, index):
+        return len(self._data)
+
+    def columnCount(self, index):
+        return len(self._conc)
+
+    def headerData(self, section, orientation, role):
+        if role == qtc.Qt.DisplayRole:
+            if orientation == qtc.Qt.Vertical:
+                return self._names[section]
+            if orientation == qtc.Qt.Horizontal:
+                return self._conc[section] + u' \u00B5g/mL'
+
+    def flags(self, index):
+        return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable
 
