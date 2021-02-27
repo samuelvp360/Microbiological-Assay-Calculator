@@ -3,6 +3,7 @@
 
 from PyQt5 import QtCore as qtc
 from PyQt5 import QtGui as qtg
+from PyQt5.QtWidgets import QApplication, QStyle
 from datetime import datetime
 import numpy as np
 
@@ -62,6 +63,13 @@ class WellDataModel(qtc.QAbstractTableModel):
                         if self._samplePositions[i][0] is not None and \
                            self._samplePositions[i][0] <= int(column) <= self._samplePositions[i][1]:
                             return qtg.QColor(self._colors[i])
+        if role == qtc.Qt.ForegroundRole:
+            if orientation == qtc.Qt.Horizontal:
+                column = self._indexes[section]
+                if column == 'Mean':
+                    return qtg.QColor('#ffffff')
+                elif column == 'Std':
+                    return qtg.QColor('#ffffff')
 
     def flags(self, index):
         return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
@@ -86,6 +94,11 @@ class AssaysModel(qtc.QAbstractTableModel):
                 return self._data[index.row()].conc[0]
             elif index.column() == 4:
                 return str(self._data[index.row()].date)
+
+        if role == qtc.Qt.DecorationRole:
+            style = QApplication.style()
+            if self._data[index.row()].stored and index.column() == 0:
+                return qtg.QIcon(style.standardIcon(QStyle.SP_DriveHDIcon))
 
     def setData(self, index, value, role):
         if role == qtc.Qt.EditRole:
@@ -128,7 +141,7 @@ class AssaysModel(qtc.QAbstractTableModel):
                     return 'Date'
 
     def flags(self, index):
-        return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
+        return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable
 
 
 class SamplesModel(qtc.QAbstractTableModel):
@@ -136,13 +149,13 @@ class SamplesModel(qtc.QAbstractTableModel):
         super().__init__()
         self._data = data
         self._conc = conc
-        self._names = [i for i in self._data.keys()]
+        self._names = [i['Name'] for i in self._data]
 
     def data(self, index, role):
         if role == qtc.Qt.DisplayRole:
             thisConc = self._conc[index.column()]
-            inhibition = self._data[self._names[index.row()]]['Inhibition'].loc['Mean', thisConc]
-            std = self._data[self._names[index.row()]]['Inhibition'].loc['Std', thisConc]
+            inhibition = self._data[index.row()]['Inhibition'].loc['Mean', thisConc]
+            std = self._data[index.row()]['Inhibition'].loc['Std', thisConc]
             return str(round(inhibition, 3)) + u' \u00B1 ' + str(round(std, 3))
 
     def rowCount(self, index):

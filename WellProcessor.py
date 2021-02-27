@@ -57,6 +57,7 @@ class WellProcessor(qtw.QWidget):
         [self.sampleNameLabels[i].setVisible(False) for i in range(4) if i >= self.samplesPerPlate]
         self.model = WellDataModel(self.df, self.samplePositions, self.colors)
         self.uiWellTableView.setModel(self.model)
+        self.uiWellTableView.verticalHeader().setDefaultAlignment(qtc.Qt.AlignRight)
         self.model.layoutChanged.emit()
         self.uiWellTableView.installEventFilter(self)
         # ---------------SIGNALS-----------------
@@ -121,8 +122,6 @@ class WellProcessor(qtw.QWidget):
         self.df = pd.DataFrame([6 * [np.nan] for _ in range(10)], columns=self.conc)
         self.df['line'] = range(1, 11)
         self.df = self.df.set_index('line')
-        self.uiTimeLabel.setText(step)
-        self.uiTimeLabel.setStyleSheet('color: red')
         self.uiMessageLabel.setStyleSheet('color: red')
         self.uiMessageLabel.setText(
             f'Please enter the data from your assay at {theTime}'
@@ -135,7 +134,7 @@ class WellProcessor(qtw.QWidget):
                 ranges.append(range(i, j + 1))
             else:
                 ranges.append([None, None])
-        samples = [data.loc[i:j].copy() for i, j in positions if i is not None]
+        samples = [data.loc[i:j].copy() if i is not None else None for i, j in positions]
         return samples, ranges
 
     def SetNames(self, sampleIdx):
@@ -160,9 +159,16 @@ class WellProcessor(qtw.QWidget):
                 self, 'Missing Name(s)', 'Please enter the name of all samples before continue',
                 qtw.QMessageBox.Ok
             )
+        elif isinstance(self.samples[-1], pd.DataFrame) is False:
+            qtw.QMessageBox.warning(
+                self, 'Missing Blank(s)', 'You may have not selected the Blank',
+                qtw.QMessageBox.Ok
+            )
         else:
             self.Tf = self.df.copy()
             self.ResetDataFrame('T0')
+            self.uiTimeLabel.setText('T0')
+            self.uiTimeLabel.setStyleSheet('color: red')
             self.model = WellDataModel(self.df, self.samplePositions, self.colors)
             self.uiWellTableView.setModel(self.model)
             self.model.layoutChanged.emit()
@@ -179,15 +185,13 @@ class WellProcessor(qtw.QWidget):
         else:
             self.T0 = self.df.copy()
             self.TfminusT0 = self.Tf - self.T0
+            self.uiTimeLabel.setText('TF-T0')
             self.samples, self.sampleRanges = self.SetSamples(self.TfminusT0, self.samplePositions)
             self.model = WellDataModel(self.TfminusT0, self.samplePositions, self.colors)
             self.uiWellTableView.setModel(self.model)
             self.model.layoutChanged.emit()
             self.uiSubmitT0Button.setVisible(False)
             self.uiCalculateButton.setVisible(True)
-            self.uiMessageLabel.setText(
-                'Verify your data and edit it befor Sample Submission'
-            )
 
     def Calculate(self):
         if '' in self.sampleNames[:self.samplesPerPlate + 1]:
@@ -204,18 +208,24 @@ class WellProcessor(qtw.QWidget):
             blankStd = self.samples[-1].stack().std()
             self.uiBlankMeanLabel.setText(f'Blank Mean: {str(round(blankMean, 3))}')
             self.uiBlankStdLabel.setText(f'Blank Standard dev.: {str(round(blankStd, 3))}')
-            self.uiBlankMeanLabel.setStyleSheet('background-color: #037272\ncolor: #ffffff')
-            self.uiBlankStdLabel.setStyleSheet('background-color: #720303\ncolor: #ffffff')
+            self.uiBlankMeanLabel.setStyleSheet('background-color: #037272;\ncolor: #ffffff')
+            self.uiBlankStdLabel.setStyleSheet('background-color: #720303;\ncolor: #ffffff')
+            inhibit = []
             for i, sample in enumerate(self.samples[:-1]):
-                self.samples[i] = sample.applymap(lambda x: (blankMean - x) * 100 / blankMean)
-                means = self.samples[i].mean()
-                desvest = self.samples[i].std()
-                self.samples[i].loc['Mean'] = means
-                self.samples[i].loc['Std'] = desvest
-            self.percentInhib = self.samples[0].append(self.samples[1:-1])
+                if sample is not None:
+                    self.samples[i] = sample.applymap(lambda x: (blankMean - x) * 100 / blankMean)
+                    means = self.samples[i].mean()
+                    desvest = self.samples[i].std()
+                    self.samples[i].loc['Mean'] = means
+                    self.samples[i].loc['Std'] = desvest
+                    inhibit.append(self.samples[i])
+            self.percentInhib = inhibit[0].append(inhibit[1:])
             self.model = WellDataModel(self.percentInhib, self.samplePositions, self.colors)
             self.uiWellTableView.setModel(self.model)
             self.model.layoutChanged.emit()
+            self.uiMessageLabel.setText(
+                'Verify your data and edit it befor Sample Submission'
+            )
 
     def SubmitSample(self):
         self.submitted.emit(

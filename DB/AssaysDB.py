@@ -22,10 +22,23 @@ class MyZODB(object):
 
     def StoreAssay(self, assayToStore):
 
-        self.dbroot[assayToStore.name] = assayToStore
-        self.dbroot[assayToStore.name].stored = True
-        transaction.commit()
+        if self.dbroot.get(assayToStore.name) is None:
+            self.dbroot[assayToStore.name] = assayToStore
+            self.dbroot[assayToStore.name].stored = True
+            transaction.commit()
+            return True
+        else:
+            return False
 
-    def FetchAssays(self):
+    def FetchDB(self):
         return self.dbroot
+
+    def SearchAssay(self, assayName):
+        if not self.dbroot.get(assayName):
+            return False
+        else:
+            return True
+
+    def FetchAssay(self, assayName):
+        return self.dbroot.get(assayName)
 

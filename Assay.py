@@ -12,20 +12,21 @@ class Assay(Persistent):
         self.name = name
         self.conc = conc
         self.date = date
-        self.samples = {}
+        self.samples = []
         self.numOfSamples = 0
         self.stored = False
         self._p_changed = False
 
     def StoreSamples(self, samples, sampleNames, samplesPositions, Tf, T0):
         for index, name in enumerate(sampleNames):
-            self.samples[name] = {
+            self.samples.append({
+                'Name': name,
                 'Tf': Tf,
                 'T0': T0,
                 'Positions': samplesPositions,
-                'Names': sampleNames,
+                'Name of samples': sampleNames,
                 'Inhibition': samples[index]
-            }
+            })
         self.numOfSamples += len(sampleNames)
         self._p_changed = True
 
