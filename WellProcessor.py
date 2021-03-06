@@ -60,6 +60,7 @@ class WellProcessor(qtw.QWidget):
         self.uiWellTableView.verticalHeader().setDefaultAlignment(qtc.Qt.AlignRight)
         self.model.layoutChanged.emit()
         self.uiWellTableView.installEventFilter(self)
+        self.sampleNameLabels[0].setFocus()
         # ---------------SIGNALS-----------------
         self.sampleButtons[0].clicked.connect(lambda: self.SampleSelection(0))
         self.sampleButtons[1].clicked.connect(lambda: self.SampleSelection(1))

@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtCore as qtc
 from persistent import Persistent
-import transaction
 
 
 class Assay(Persistent):
@@ -30,4 +28,9 @@ class Assay(Persistent):
         self.numOfSamples += len(sampleNames)
         self._p_changed = True
 
+    def RemoveSample(self, samplesIndexes):
+        for i, sampleIndex in enumerate(samplesIndexes):
+            del self.samples[sampleIndex - i]
+            self.numOfSamples -= 1
+        self._p_changed = True
 
