@@ -93,10 +93,24 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="uiPlotButton">
+         <property name="text">
+          <string>Plot</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
      <item>
-      <widget class="QTableView" name="uiSamplesTableView"/>
+      <widget class="QTableView" name="uiSamplesTableView">
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="verticalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+      </widget>
      </item>
     </layout>
    </widget>

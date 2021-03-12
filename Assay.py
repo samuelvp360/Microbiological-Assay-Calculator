@@ -15,17 +15,16 @@ class Assay(Persistent):
         self.stored = False
         self._p_changed = False
 
-    def StoreSamples(self, samples, sampleNames, samplesPositions, Tf, T0):
-        for index, name in enumerate(sampleNames):
-            self.samples.append({
-                'Name': name,
-                'Tf': Tf,
-                'T0': T0,
-                'Positions': samplesPositions,
-                'Name of samples': sampleNames,
-                'Inhibition': samples[index]
-            })
-        self.numOfSamples += len(sampleNames)
+    def StoreSample(self, sample, index, sampleNames, samplesPositions, TF, T0):
+        self.samples.append({
+            'Name': sampleNames[index],
+            'TF': TF,
+            'T0': T0,
+            'Positions': samplesPositions,
+            'Name of samples': sampleNames,
+            'Inhibition': sample
+        })
+        self.numOfSamples += 1
         self._p_changed = True
 
     def RemoveSample(self, samplesIndexes):

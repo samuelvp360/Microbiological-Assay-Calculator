@@ -12,6 +12,7 @@ import numpy as np
 from Models import AssaysModel, SamplesModel
 from DB.AssaysDB import MyZODB
 import matplotlib
+from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from WellProcessor import WellProcessor
@@ -26,7 +27,7 @@ class PlotCanvas(FigureCanvasQTAgg):
     """
     def __init__(self, parent=None):
         self.fig = Figure(
-            figsize=(6, 4), dpi=100, facecolor='#2d2a2e', tight_layout=True
+            figsize=(12, 8), dpi=100, facecolor='#2d2a2e', tight_layout=True
         )
         self.ax = self.fig.add_subplot(111)
         super().__init__(self.fig)
@@ -56,9 +57,14 @@ class MainWindow(qtw.QMainWindow):
         self.uiAddSampleButton.clicked.connect(self.AddSample)
         self.uiDelSampleButton.clicked.connect(self.RemoveSample)
         self.uiDiscardButton.clicked.connect(self.DiscardChanges)
+        self.uiPlotButton.clicked.connect(lambda: self.Plot(ext=True))
         self.uiAssaysTableView.selectionModel().selectionChanged.connect(self.SetSelectedAssay)
+        self.uiSamplesTableView.doubleClicked.connect(self.TriggerWell)
 
-    def Plot(self):
+    def Plot(self, ext=False):
+        if ext:
+            fig, ax = plt.subplots()
+        self.canvas.ax.clear()
         assay = self.assaysList[self.selectedAssay]
         samples = [assay.samples[i] for i in self.selectedSamples]
         n = len(samples)
@@ -69,39 +75,44 @@ class MainWindow(qtw.QMainWindow):
             factor = np.zeros(1)
         else:
             factor = np.linspace(-limit + width / 2, limit - width / 2, n)
-            print(factor)
-        self.canvas.ax.clear()
         for i, sample in enumerate(samples):
-            mean = sample['Inhibition'].loc['Mean']
-            std = sample['Inhibition'].loc['Std']
-            self.canvas.ax.bar(x + factor[i], mean, width, label=sample['Name'])
+            mean = sample['Inhibition'].loc['Mean', ::-1]
+            std = sample['Inhibition'].loc['Std', ::-1]
+            if ext:
+                ax.bar(
+                    x + factor[i], mean, width, label=sample['Name'],
+                    yerr=std, capsize=15 / n, edgecolor='black'
+                )
+                ax.axhline(
+                    100, color='black', linestyle='--', linewidth=0.8
+                )
+            self.canvas.ax.bar(
+                x + factor[i], mean, width, label=sample['Name'],
+                yerr=std, capsize=15 / n, edgecolor='black'
+            )
+            self.canvas.ax.axhline(
+                100, color='black', linestyle='--', linewidth=0.8
+            )
         self.canvas.ax.set_title(assay.name, color='#ae81ff')
-        self.canvas.ax.set_xlabel(u'Concentrations (\u00B5g/mL)', color='#f92672')
+        self.canvas.ax.set_xlabel(u'Concentration (\u00B5g/mL)', color='#f92672')
         self.canvas.ax.set_ylabel('%Inhibition', color='#f92672')
         self.canvas.ax.set_xticks(x)
-        self.canvas.ax.set_xticklabels(assay.conc)
+        self.canvas.ax.set_xticklabels(assay.conc[::-1])
         self.canvas.ax.tick_params(axis='x', colors='#66d9ef')
         self.canvas.ax.tick_params(axis='y', colors='#66d9ef')
         self.canvas.ax.legend()
         self.canvas.draw()
-
-        # def autolabel(rects):
-            # """Attach a text label above each bar in *rects*, displaying its height."""
-            # for rect in rects:
-                # height = rect.get_height()
-                # ax.annotate('{}'.format(height),
-                            # xy=(rect.get_x() + rect.get_width() / 2, height),
-                            # xytext=(0, 3),  # 3 points vertical offset
-                            # textcoords="offset points",
-                            # ha='center', va='bottom')
-
-
-        # autolabel(rects1)
-        # autolabel(rects2)
-
-        # fig.tight_layout()
-
-        # plt.show()
+        if ext:
+            ax.set_title(assay.name, color='#ae81ff')
+            ax.set_xlabel(u'Concentrations (\u00B5g/mL)', color='#f92672')
+            ax.set_ylabel('%Inhibition', color='#f92672')
+            ax.set_xticks(x)
+            ax.set_xticklabels(assay.conc)
+            ax.tick_params(axis='x', colors='#66d9ef')
+            ax.tick_params(axis='y', colors='#66d9ef')
+            ax.legend()
+            fig.tight_layout()
+            plt.show()
 
     def LoadAssays(self):
         DB = self.database.FetchDB()
@@ -128,7 +139,13 @@ class MainWindow(qtw.QMainWindow):
         indexes = self.uiSamplesTableView.selectedIndexes()
         if indexes:
             self.selectedSamples = tuple(set([i.row() for i in indexes]))
-            self.Plot()
+            if self.selectedAssay is not None:
+                self.Plot()
+            else:
+                qtw.QMessageBox.warning(
+                    self, 'Not Assay Selected!',
+                    'Please select the corresponding assay before showing the plot'
+                )
         else:
             self.selectedSamples = None
 
@@ -207,27 +224,49 @@ class MainWindow(qtw.QMainWindow):
             if len(self.assaysList) > 0:
                 index = self.uiAssaysTableView.model().index(self.selectedAssay, 0, qtc.QModelIndex())
                 self.uiAssaysTableView.setCurrentIndex(index)
+                self.uiAssaysTableView.selectionModel().selectionChanged.connect(self.SetSelectedAssay)
             self.model.layoutChanged.emit()
 
     def RemoveSample(self):
         if self.selectedAssay is not None and self.selectedSamples is not None:
             self.assaysList[self.selectedAssay].RemoveSample(self.selectedSamples)
-            self.selectedSamples = [self.selectedSamples[0] - 1 if self.selectedSamples[0] - 1 >= 0 else 0]
-            if len(self.assaysList[self.selectedAssay].samples) > 0:
-                index = self.uiSamplesTableView.model().index(self.selectedSamples[0], 0, qtc.QModelIndex())
-                self.uiSamplesTableView.setCurrentIndex(index)
             self.model.layoutChanged.emit()
             assay = self.assaysList[self.selectedAssay]
             self.samplesModel = SamplesModel(assay.samples, assay.conc)
             self.uiSamplesTableView.setModel(self.samplesModel)
+            self.selectedSamples = [self.selectedSamples[0] - 1 if self.selectedSamples[0] - 1 >= 0 else 0]
+            if len(self.assaysList[self.selectedAssay].samples) > 0:
+                index = self.uiSamplesTableView.model().index(self.selectedSamples[0], 0, qtc.QModelIndex())
+                self.uiSamplesTableView.setCurrentIndex(index)
+                self.uiSamplesTableView.selectionModel().selectionChanged.connect(self.SetSelectedSamples)
             self.samplesModel.layoutChanged.emit()
 
     @qtc.pyqtSlot(list, list, list, object, object)
-    def SampleProcessor(self, samples, sampleNames, samplesPositions, Tf, T0):
+    def SampleProcessor(self, samples, sampleNames, samplesPositions, TF, T0):
         assay = self.assaysList[self.selectedAssay]
-        assay.StoreSamples(samples, sampleNames, samplesPositions, Tf, T0)
+        for index, name in enumerate(sampleNames):
+            exist = [True if s['Name'] == name else False for s in assay.samples]
+            print(exist)
+            if True in exist:
+                reply = qtw.QMessageBox.question(
+                    self, 'Existing Sample',
+                    f'The sample {name} already exists in {assay.name}. Do you want to overwrite it?',
+                    qtw.QMessageBox.Yes | qtw.QMessageBox.No,
+                    qtw.QMessageBox.No
+                )
+                if reply == qtw.QMessageBox.Yes:
+                    print('sobreescribiendo')
+                    for idx, value in enumerate(exist):
+                        if value:
+                            del assay.samples[idx]
+                    assay.StoreSample(samples[index], index, sampleNames, samplesPositions, TF, T0)
+                elif reply == qtw.QMessageBox.No:
+                    continue
+            else:
+                assay.StoreSample(samples[index], index, sampleNames, samplesPositions, TF, T0)
         self.samplesModel = SamplesModel(assay.samples, assay.conc)
         self.uiSamplesTableView.setModel(self.samplesModel)
+        self.uiSamplesTableView.selectionModel().selectionChanged.connect(self.SetSelectedSamples)
         self.samplesModel.layoutChanged.emit()
         self.uiSamplesTableView.resizeColumnsToContents()
 
@@ -237,6 +276,18 @@ class MainWindow(qtw.QMainWindow):
         )
         if ok:
             return text
+
+    def TriggerWell(self):
+        if self.selectedAssay is not None and self.selectedSamples is not None:
+            assay = self.assaysList[self.selectedAssay]
+            sample = assay.samples[self.selectedSamples[0]]
+            self.wellProcessor = WellProcessor(
+                assay.name, assay.conc, len(sample['Name of samples']),
+                sample['TF'].shape[0], sample['T0'], sample['TF'],
+                sample['Name of samples'], sample['Positions']
+            )
+            self.wellProcessor.submitted.connect(self.SampleProcessor)
+            self.wellProcessor.show()
 
     def TrackChanges(self):
         assaysToStore = [index for index, assay in enumerate(self.assaysList) if not assay.stored]
@@ -282,15 +333,26 @@ class MainWindow(qtw.QMainWindow):
             message2.exec()
 
     def DiscardChanges(self):
-        assay = self.assaysList[self.selectedAssay]
         self.database.Abort()
-        self.LoadAssays()
-        self.model.layoutChanged.emit()
-        self.samplesModel = SamplesModel(assay.samples, assay.conc)
-        self.uiSamplesTableView.setModel(self.samplesModel)
-        self.samplesModel.layoutChanged.emit()
+        self.assaysList = self.LoadAssays()
+        self.model = AssaysModel(self.assaysList)
+        self.uiAssaysTableView.setModel(self.model)
         self.uiAssaysTableView.resizeColumnsToContents()
-        self.uiSamplesTableView.resizeColumnsToContents()
+        self.uiAssaysTableView.resizeRowsToContents()
+        if len(self.assaysList) > 0:
+            index = self.uiAssaysTableView.model().index(self.selectedAssay, 0, qtc.QModelIndex())
+            self.uiAssaysTableView.setCurrentIndex(index)
+            self.uiAssaysTableView.selectionModel().selectionChanged.connect(self.SetSelectedAssay)
+            self.model.layoutChanged.emit()
+        if len(self.assaysList[self.selectedAssay].samples) > 0:
+            index = self.uiSamplesTableView.model().index(self.selectedSamples[0], 0, qtc.QModelIndex())
+            self.uiSamplesTableView.setCurrentIndex(index)
+            assay = self.assaysList[self.selectedAssay]
+            self.samplesModel = SamplesModel(assay.samples, assay.conc)
+            self.uiSamplesTableView.setModel(self.samplesModel)
+            self.uiSamplesTableView.selectionModel().selectionChanged.connect(self.SetSelectedSamples)
+            self.samplesModel.layoutChanged.emit()
+            self.uiSamplesTableView.resizeColumnsToContents()
 
     def closeEvent(self, event):
         try:

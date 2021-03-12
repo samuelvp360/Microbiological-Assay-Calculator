@@ -13,16 +13,16 @@ class WellDataModel(qtc.QAbstractTableModel):
 
     def __init__(self, data, samplePositions, colors, inhibition=False):
         super().__init__()
-        self._data = data
+        self.data = data
         self._samplePositions = samplePositions
         self._numOfSamples = len(samplePositions)
         self._inhibition = inhibition
         self._colors = colors
-        self._indexes = self._data.index.values.tolist()
+        self._indexes = self.data.index.values.tolist()
 
     def data(self, index, role):
         if role == qtc.Qt.DisplayRole or role == qtc.Qt.EditRole:
-            value = self._data.iloc[index.column(), index.row()]
+            value = self.data.iloc[index.column(), index.row()]
             if np.isnan(value):
                 return ''
             else:
@@ -33,24 +33,24 @@ class WellDataModel(qtc.QAbstractTableModel):
     def setData(self, index, value, role):
         if role == qtc.Qt.EditRole:
             try:
-                self._data.iloc[index.column(), index.row()] = float(value)
+                self.data.iloc[index.column(), index.row()] = float(value)
                 self.dataChanged.emit(index, index)
                 return True
             except ValueError:
                 return False
 
     def rowCount(self, index):
-        return self._data.shape[1]
+        return self.data.shape[1]
 
     def columnCount(self, index):
-        return self._data.shape[0]
+        return self.data.shape[0]
 
     def headerData(self, section, orientation, role):
         if role == qtc.Qt.DisplayRole:
             if orientation == qtc.Qt.Horizontal:
                 return str(self._indexes[section])
             if orientation == qtc.Qt.Vertical:
-                return self._data.columns[section] + u' \u00B5g/mL'
+                return self.data.columns[section] + u' \u00B5g/mL'
         if role == qtc.Qt.BackgroundRole:
             if orientation == qtc.Qt.Horizontal:
                 column = self._indexes[section]
@@ -141,7 +141,10 @@ class AssaysModel(qtc.QAbstractTableModel):
                     return 'Date'
 
     def flags(self, index):
-        return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable
+        if index.column() in (0, 4):
+            return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable | qtc.Qt.ItemIsEditable
+        else:
+            return qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsSelectable
 
 
 class SamplesModel(qtc.QAbstractTableModel):
