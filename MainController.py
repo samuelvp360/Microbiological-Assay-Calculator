@@ -36,7 +36,7 @@ class PlotCanvas(FigureCanvasQTAgg):
 class MainWindow(qtw.QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('Views/uiMainWindow.ui', self)
+        uic.loadUi('/media/samuelvip/Samuel Vizcaíno Páez/Users/asus/Desktop/Python_projects/Microbiological_Assay_Calculator/Views/uiMainWindow.ui', self)
         self.database = MyZODB()
         self.canvas = PlotCanvas(self)
         self.toolbar = NavigationToolbar(self.canvas, self)
@@ -246,7 +246,6 @@ class MainWindow(qtw.QMainWindow):
         assay = self.assaysList[self.selectedAssay]
         for index, name in enumerate(sampleNames):
             exist = [True if s['Name'] == name else False for s in assay.samples]
-            print(exist)
             if True in exist:
                 reply = qtw.QMessageBox.question(
                     self, 'Existing Sample',
@@ -255,7 +254,6 @@ class MainWindow(qtw.QMainWindow):
                     qtw.QMessageBox.No
                 )
                 if reply == qtw.QMessageBox.Yes:
-                    print('sobreescribiendo')
                     for idx, value in enumerate(exist):
                         if value:
                             del assay.samples[idx]
@@ -371,12 +369,10 @@ class MainWindow(qtw.QMainWindow):
                     self.StoreChanges()
                     self.database.Close()
                     event.accept()
-                    print('Window closed')
                 elif reply == qtw.QMessageBox.No:
                     self.database.Abort()
                     self.database.Close()
                     event.accept()
-                    print('Window closed')
                 else:
                     event.ignore()
             else:
@@ -392,10 +388,4 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
-
-
-# TODO:
-    # 1. Implementar el botón Discard changes
-    # 2. La selección múltiple de muestras para poder borrarlas en combo
-    # 3. 
 

@@ -21,7 +21,7 @@ class WellProcessor(qtw.QWidget):
         T0=None, TF=None, sampleNames=None, samplePositions=None
     ):
         super().__init__()
-        uic.loadUi('Views/uiWellProcessor.ui', self)
+        uic.loadUi('/media/samuelvip/Samuel Vizcaíno Páez/Users/asus/Desktop/Python_projects/Microbiological_Assay_Calculator/Views/uiWellProcessor.ui', self)
         self.setWindowTitle(f'Adding samples to {name} assay')
         self.uiSubmitT0Button.setVisible(False)
         self.uiSubmitSampleButton.setVisible(False)
