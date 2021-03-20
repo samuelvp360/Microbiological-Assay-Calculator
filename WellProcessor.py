@@ -17,11 +17,11 @@ class WellProcessor(qtw.QWidget):
     submitted = qtc.pyqtSignal(list, list, list, object, object)
 
     def __init__(
-        self, name, conc, samplesPerPlate, replicas,
+        self, path, name, conc, samplesPerPlate, replicas,
         T0=None, TF=None, sampleNames=None, samplePositions=None
     ):
         super().__init__()
-        uic.loadUi('/media/samuelvip/Samuel Vizcaíno Páez/Users/asus/Desktop/Python_projects/Microbiological_Assay_Calculator/Views/uiWellProcessor.ui', self)
+        uic.loadUi(f'{path}Views/uiWellProcessor.ui', self)
         self.setWindowTitle(f'Adding samples to {name} assay')
         self.uiSubmitT0Button.setVisible(False)
         self.uiSubmitSampleButton.setVisible(False)

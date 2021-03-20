@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
+from pathlib import Path
 from datetime import datetime
 from PyQt5 import QtCore as qtc
-# from PyQt5 import QtGui as qtg
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import uic
-# import pandas as pd
 import numpy as np
 from Models import AssaysModel, SamplesModel
 from DB.AssaysDB import MyZODB
@@ -19,6 +19,17 @@ from WellProcessor import WellProcessor
 from Assay import Assay
 
 matplotlib.use('Qt5Agg')
+p = Path(__file__)
+print(p)
+isLink = os.path.islink(p)
+if isLink:
+    theLink = os.readlink(p)
+    path = Path(theLink).resolve().parent
+    path = f'{path}/'
+    print('linked')
+else:
+    path = ''
+    print('unlinked')
 
 
 class PlotCanvas(FigureCanvasQTAgg):
@@ -34,10 +45,11 @@ class PlotCanvas(FigureCanvasQTAgg):
 
 
 class MainWindow(qtw.QMainWindow):
-    def __init__(self):
+    def __init__(self, path):
         super().__init__()
-        uic.loadUi('/media/samuelvip/Samuel Vizcaíno Páez/Users/asus/Desktop/Python_projects/Microbiological_Assay_Calculator/Views/uiMainWindow.ui', self)
-        self.database = MyZODB()
+        self.path = path
+        uic.loadUi(f'{path}Views/uiMainWindow.ui', self)
+        self.database = MyZODB(path)
         self.canvas = PlotCanvas(self)
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.uiToolbarLayout.addWidget(self.toolbar)
@@ -200,7 +212,7 @@ class MainWindow(qtw.QMainWindow):
             )
             if ok1 and ok2:
                 self.wellProcessor = WellProcessor(
-                    self.assaysList[self.selectedAssay].name,
+                    self.path, self.assaysList[self.selectedAssay].name,
                     self.assaysList[self.selectedAssay].conc,
                     int(numOfSamples), int(replicas)
                 )
@@ -280,7 +292,7 @@ class MainWindow(qtw.QMainWindow):
             assay = self.assaysList[self.selectedAssay]
             sample = assay.samples[self.selectedSamples[0]]
             self.wellProcessor = WellProcessor(
-                assay.name, assay.conc, len(sample['Name of samples']),
+                self.path, assay.name, assay.conc, len(sample['Name of samples']),
                 sample['TF'].shape[0], sample['T0'], sample['TF'],
                 sample['Name of samples'], sample['Positions']
             )
@@ -385,7 +397,7 @@ class MainWindow(qtw.QMainWindow):
 
 if __name__ == '__main__':
     app = qtw.QApplication(sys.argv)
-    window = MainWindow()
+    window = MainWindow(path)
     window.show()
     sys.exit(app.exec_())
 
